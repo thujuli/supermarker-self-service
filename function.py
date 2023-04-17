@@ -1,5 +1,7 @@
 import csv
 from tabulate import tabulate
+from sqlalchemy import create_engine, insert
+from sqlalchemy import text
 
 def reset_transaction(file):
     """
@@ -469,3 +471,118 @@ def menu():
     print("5. Hapus salah satu item")
     print("6. Hapus semua item di keranjang")
     print("7. Cek input item sudah sesuai dengan sistem\n")
+
+
+def create_db():
+    """
+    Fungsi untuk membuat database sqlite
+
+    arg:
+        None
+    
+    return:
+        None
+    """
+    # Konfigurasi konesksi ke database sqlite
+    engine = create_engine('sqlite:///data.db')
+
+    # Buat koneksi
+    conn = engine.connect()
+
+    # Buat Query SQL dalam modul text
+    query = text("""
+    CREATE TABLE transaksi(
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        nama VARCHAR(255), 
+        jumlah INTEGER, 
+        harga INTEGER, 
+        total_harga INTEGER,
+        diskon INTEGER,
+        harga_diskon INTEGER)
+    """)
+
+    # Mengeksekusi Query
+    conn.execute(query)
+
+    # Menutup koneksi ke database
+    conn.close()
+
+def csv_to_list(path):
+    """
+    Mengubah file csv menjadi list of dictionaries
+
+    Parameters:
+        path (str): Tempat file csv
+
+    Returns:
+        data_list (list): list of dictionary data csv
+    """
+    # List untuk menyimpan data dari file CSV
+    data_list = []
+
+    # Membuka file CSV dengan mode read (r)
+    with open(path, mode='r') as csvfile:
+        
+        # Membaca file csv sebagai dictionary
+        csv_reader = csv.DictReader(csvfile, delimiter=',')
+
+        # Iterasi setiap baris di file CSV
+        for row in csv_reader:
+            # Append baris data ke data_list sebagai dictionary
+            data_list.append(row)
+
+    return data_list
+
+def trans_field_int(data_list):
+    """
+    Mengubah data field jumlah, harga, total_harga, diskon dan harga_diskon menjadi integer
+
+    Parameter:
+        data_list (list): List of dictionaries dari data csv
+
+    Returns:
+        data_list (list): list of dictionaries, dimana nilai field jumlah, harga, total_harga, diskon
+                          dan harga_diskon menjadi integer
+    
+  """
+    # Iterasi setiap baris data
+    for num in range(0, len(data_list)):
+        data_list[num]['jumlah'] = int(data_list[num]['jumlah'])
+        data_list[num]['harga'] = int(data_list[num]['harga'])
+        data_list[num]['total_harga'] = int(data_list[num]['total_harga'])
+        data_list[num]['diskon'] = int(data_list[num]['diskon'])
+        data_list[num]['harga_diskon'] = int(data_list[num]['harga_diskon'])
+      
+    return data_list
+
+def insert_to_table(list_data):
+    """
+    Memasukkan data ke dalam table database
+
+    Parameter:
+        list_data (list): list of dictionary dari data transaction
+    Return
+        None
+    """ 
+    
+    # Konfigurasi konesksi ke database sqlite
+    engine = create_engine('sqlite:///data.db')
+
+    # Buat koneksi
+    conn = engine.connect()
+
+    # Definisi SQL query untuk memasukkan data ke dalam table
+    stmt = text("""
+    INSERT INTO 
+        transaksi(nama, jumlah, harga, 
+        total_harga, diskon, harga_diskon)
+    VALUES(:nama, :jumlah, :harga, :total_harga, 
+        :diskon, :harga_diskon) 
+    """)
+
+    # Iterasi data dan eksekusi insert query untuk setiap baris data
+    for item in list_data:
+        conn.execute(stmt, item)
+
+    # Menutup koneksi ke database
+    conn.close()
